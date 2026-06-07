@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>뉴스 정리</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;600;700&family=Noto+Sans+KR:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1a1714;
+    --paper: #f5f0e8;
+    --cream: #ede8dc;
+    --accent: #c0392b;
+    --muted: #7a6f63;
+    --border: #d4cec4;
+    --tag-bg: #e8e3d8;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Noto Sans KR', sans-serif; background: var(--paper); color: var(--ink); min-height: 100vh; }
+  header { background: var(--ink); color: var(--paper); padding: 0 2rem; display: flex; align-items: center; justify-content: space-between; height: 56px; position: sticky; top: 0; z-index: 100; }
+  .logo { font-family: 'Noto Serif KR', serif; font-size: 1.1rem; font-weight: 700; letter-spacing: 0.05em; }
+  .logo span { color: var(--accent); }
+  .header-sub { font-size: 0.7rem; color: #888; font-family: 'DM Mono', monospace; letter-spacing: 0.1em; }
+  .tabs { background: var(--cream); border-bottom: 1px solid var(--border); display: flex; padding: 0 2rem; gap: 0; }
+  .tab { padding: 0.85rem 1.4rem; font-size: 0.82rem; font-weight: 500; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s; }
+  .tab.active { color: var(--ink); border-bottom-color: var(--accent); }
+  .tab:hover:not(.active) { color: var(--ink); }
+  main { max-width: 900px; margin: 0 auto; padding: 2rem 1.5rem; }
+  .panel { display: none; }
+  .panel.active { display: block; }
+  .form-card { background: white; border: 1px solid var(--border); border-radius: 4px; padding: 2rem; margin-bottom: 1.5rem; box-shadow: 0 1px 4px rgba(0,0,0,0.05); }
+  .form-section-title { font-family: 'Noto Serif KR', serif; font-size: 0.75rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.15em; margin-bottom: 1.2rem; padding-bottom: 0.6rem; border-bottom: 1px solid var(--border); }
+  .field { margin-bottom: 1.2rem; }
+  label { display: block; font-size: 0.78rem; font-weight: 500; color: var(--muted); margin-bottom: 0.4rem; }
+  input[type="text"], input[type="url"], textarea, select { width: 100%; padding: 0.65rem 0.85rem; border: 1px solid var(--border); border-radius: 3px; font-family: 'Noto Sans KR', sans-serif; font-size: 0.88rem; color: var(--ink); background: var(--paper); transition: border-color 0.2s; outline: none; }
+  input:focus, textarea:focus { border-color: var(--accent); background: white; }
+  textarea { min-height: 100px; resize: vertical; line-height: 1.7; }
+  .tag-group { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.4rem; }
+  .tag-chip { padding: 0.35rem 0.8rem; border: 1px solid var(--border); border-radius: 2px; font-size: 0.78rem; cursor: pointer; background: var(--tag-bg); color: var(--muted); transition: all 0.15s; user-select: none; font-weight: 500; }
+  .tag-chip.selected { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  .tag-chip:hover:not(.selected) { border-color: var(--ink); color: var(--ink); }
+  .btn-primary { background: var(--ink); color: var(--paper); border: none; padding: 0.75rem 2rem; font-family: 'Noto Sans KR', sans-serif; font-size: 0.85rem; font-weight: 500; cursor: pointer; border-radius: 3px; transition: background 0.2s; }
+  .btn-primary:hover { background: var(--accent); }
+  .btn-primary:disabled { background: var(--muted); cursor: not-allowed; }
+  .btn-secondary { background: transparent; color: var(--muted); border: 1px solid var(--border); padding: 0.65rem 1.4rem; font-family: 'Noto Sans KR', sans-serif; font-size: 0.82rem; cursor: pointer; border-radius: 3px; transition: all 0.2s; }
+  .btn-secondary:hover { border-color: var(--ink); color: var(--ink); }
+  .form-actions { display: flex; gap: 0.8rem; align-items: center; margin-top: 0.5rem; }
+  .status { font-size: 0.82rem; padding: 0.65rem 1rem; border-radius: 3px; margin-top: 1rem; display: none; }
+  .status.success { background: #eaf5ea; color: #2d6a2d; border: 1px solid #b8ddb8; display: block; }
+  .status.error { background: #fdf0f0; color: #8b2222; border: 1px solid #e8c0c0; display: block; }
+  .status.loading { background: #f0f4fd; color: #2d4a8b; border: 1px solid #b8c8e8; display: block; }
+  .filter-bar { display: flex; gap: 0.6rem; margin-bottom: 1rem; flex-wrap: wrap; align-items: center; }
+  .filter-label { font-size: 0.78rem; color: var(--muted); font-weight: 500; }
+  .filter-chip { padding: 0.3rem 0.75rem; border: 1px solid var(--border); border-radius: 2px; font-size: 0.76rem; cursor: pointer; background: var(--tag-bg); color: var(--muted); transition: all 0.15s; }
+  .filter-chip.active { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  .memo-list { display: flex; flex-direction: column; gap: 1rem; }
+  .memo-card { background: white; border: 1px solid var(--border); border-radius: 4px; padding: 1.4rem 1.6rem; box-shadow: 0 1px 3px rgba(0,0,0,0.04); transition: box-shadow 0.2s; }
+  .memo-card:hover { box-shadow: 0 3px 12px rgba(0,0,0,0.08); }
+  .memo-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.7rem; gap: 1rem; }
+  .memo-date { font-family: 'DM Mono', monospace; font-size: 0.72rem; color: var(--muted); white-space: nowrap; }
+  .memo-tags { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+  .memo-tag { padding: 0.2rem 0.55rem; background: var(--tag-bg); border-radius: 2px; font-size: 0.7rem; color: var(--muted); font-weight: 500; }
+  .memo-title { font-family: 'Noto Serif KR', serif; font-size: 0.95rem; font-weight: 600; margin-bottom: 0.5rem; line-height: 1.5; }
+  .memo-body { font-size: 0.85rem; color: #4a4540; line-height: 1.75; margin-bottom: 0.8rem; }
+  .memo-link { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.78rem; color: var(--accent); text-decoration: none; font-family: 'DM Mono', monospace; }
+  .memo-link:hover { text-decoration: underline; }
+  .memo-stance { display: inline-block; font-size: 0.76rem; padding: 0.2rem 0.6rem; border-radius: 2px; font-weight: 500; margin-left: 0.8rem; }
+  .stance-agree { background: #e8f4e8; color: #2d6a2d; }
+  .stance-critical { background: #fdf0f0; color: #8b2222; }
+  .stance-neutral { background: var(--tag-bg); color: var(--muted); }
+  .empty-state { text-align: center; padding: 4rem 2rem; color: var(--muted); }
+  .empty-state .empty-icon { font-size: 2.5rem; margin-bottom: 1rem; opacity: 0.4; }
+  .empty-state p { font-size: 0.88rem; line-height: 1.7; }
+  .settings-card { background: white; border: 1px solid var(--border); border-radius: 4px; padding: 2rem; margin-bottom: 1rem; }
+  .settings-title { font-family: 'Noto Serif KR', serif; font-weight: 700; font-size: 1rem; margin-bottom: 0.4rem; }
+  .settings-desc { font-size: 0.8rem; color: var(--muted); margin-bottom: 1.2rem; line-height: 1.6; }
+  .notice { background: #fffbf0; border: 1px solid #e8d890; border-radius: 3px; padding: 0.8rem 1rem; font-size: 0.8rem; color: #7a6010; line-height: 1.6; margin-bottom: 1rem; }
+  .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 0.7s linear infinite; margin-right: 6px; vertical-align: middle; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  hr { border: none; border-top: 1px solid var(--border); margin: 1.5rem 0; }
+  .search-row { display: flex; gap: 0.6rem; margin-bottom: 1rem; }
+  .search-row input { flex: 1; }
+  @media (max-width: 600px) {
+    main { padding: 1.2rem 1rem; }
+    .form-card { padding: 1.4rem; }
+    header { padding: 0 1rem; }
+    .tabs { padding: 0 1rem; }
+    .tab { padding: 0.75rem 1rem; font-size: 0.78rem; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">뉴스 <span>정리</span></div>
+  <div class="header-sub">NEWS · MEMO · ARCHIVE</div>
+</header>
+
+<nav class="tabs">
+  <div class="tab active" onclick="switchTab('write')">✏️ 새 메모</div>
+  <div class="tab" onclick="switchTab('archive')">📚 아카이브</div>
+  <div class="tab" onclick="switchTab('settings')">⚙️ 설정</div>
+</nav>
+
+<main>
+
+  <!-- 새 메모 패널 -->
+  <div class="panel active" id="panel-write">
+    <div class="form-card">
+      <div class="form-section-title">기사 정보</div>
+      <div class="field">
+        <label>기사 링크 *</label>
+        <input type="url" id="url" placeholder="https://..." />
+      </div>
+      <div class="field">
+        <label>기사 제목 (선택)</label>
+        <input type="text" id="title" placeholder="비워두면 링크가 제목으로 저장됩니다" />
+      </div>
+      <hr>
+      <div class="form-section-title">나의 메모</div>
+      <div class="field">
+        <label>메모 *</label>
+        <textarea id="memo" placeholder="핵심 내용 요약, 인용하고 싶은 문구, 비판적으로 생각해볼 점 등을 자유롭게 적어보세요."></textarea>
+      </div>
+      <div class="field">
+        <label>나의 입장</label>
+        <div class="tag-group">
+          <div class="tag-chip" data-stance="동의" onclick="selectStance(this)">👍 동의</div>
+          <div class="tag-chip" data-stance="비판적" onclick="selectStance(this)">🔍 비판적</div>
+          <div class="tag-chip" data-stance="중립" onclick="selectStance(this)">⚖️ 중립</div>
+        </div>
+      </div>
+      <div class="field">
+        <label>분야 태그 (복수 선택 가능)</label>
+        <div class="tag-group">
+          <div class="tag-chip" data-tag="정치" onclick="toggleTag(this)">정치</div>
+          <div class="tag-chip" data-tag="사회" onclick="toggleTag(this)">사회</div>
+          <div class="tag-chip" data-tag="경제" onclick="toggleTag(this)">경제</div>
+          <div class="tag-chip" data-tag="국제" onclick="toggleTag(this)">국제</div>
+          <div class="tag-chip" data-tag="문화" onclick="toggleTag(this)">문화</div>
+          <div class="tag-chip" data-tag="과학기술" onclick="toggleTag(this)">과학기술</div>
+          <div class="tag-chip" data-tag="법/사법" onclick="toggleTag(this)">법/사법</div>
+          <div class="tag-chip" data-tag="기타" onclick="toggleTag(this)">기타</div>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn-primary" onclick="saveMemo()" id="save-btn">Notion에 저장</button>
+        <button class="btn-secondary" onclick="clearForm()">초기화</button>
+      </div>
+      <div class="status" id="status"></div>
+    </div>
+  </div>
+
+  <!-- 아카이브 패널 -->
+  <div class="panel" id="panel-archive">
+    <div class="filter-bar">
+      <span class="filter-label">필터:</span>
+      <div class="filter-chip active" data-filter="전체" onclick="filterMemos(this)">전체</div>
+      <div class="filter-chip" data-filter="정치" onclick="filterMemos(this)">정치</div>
+      <div class="filter-chip" data-filter="사회" onclick="filterMemos(this)">사회</div>
+      <div class="filter-chip" data-filter="경제" onclick="filterMemos(this)">경제</div>
+      <div class="filter-chip" data-filter="국제" onclick="filterMemos(this)">국제</div>
+      <div class="filter-chip" data-filter="문화" onclick="filterMemos(this)">문화</div>
+      <div class="filter-chip" data-filter="과학기술" onclick="filterMemos(this)">과학기술</div>
+      <div class="filter-chip" data-filter="법/사법" onclick="filterMemos(this)">법/사법</div>
+    </div>
+    <div class="search-row">
+      <input type="text" id="search-input" placeholder="키워드 또는 날짜(예: 2026-06)로 검색..." oninput="renderMemos()" />
+    </div>
+    <div class="memo-list" id="memo-list">
+      <div class="empty-state">
+        <div class="empty-icon">📰</div>
+        <p>아직 저장된 메모가 없어요.<br>첫 번째 기사를 읽고 메모를 남겨보세요!</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 설정 패널 -->
+  <div class="panel" id="panel-settings">
+    <div class="settings-card">
+      <div class="settings-title">Notion 연동 설정</div>
+      <div class="settings-desc">아래 정보를 입력하면 기사 메모가 자동으로 Notion에 저장됩니다.</div>
+      <div class="notice">
+        ⚠️ API 키는 이 기기의 브라우저 로컬 저장소에만 저장됩니다.<br>
+        다른 기기에서 접속할 경우 다시 입력해야 해요.
+      </div>
+      <div class="field">
+        <label>Notion API 키 (Integration Secret)</label>
+        <input type="text" id="cfg-api-key" placeholder="ntn_xxxxxxxxxxxx" />
+      </div>
+      <div class="field">
+        <label>데이터베이스 ID</label>
+        <input type="text" id="cfg-db-id" placeholder="32자리 ID" />
+      </div>
+      <div class="form-actions">
+        <button class="btn-primary" onclick="saveSettings()">저장</button>
+        <button class="btn-secondary" onclick="testConnection()">연결 테스트</button>
+      </div>
+      <div class="status" id="settings-status"></div>
+    </div>
+
+    <div class="settings-card">
+      <div class="settings-title">Notion 데이터베이스 속성 안내</div>
+      <div class="settings-desc">
+        Notion 데이터베이스에 아래 이름의 속성을 추가해두세요.<br>
+        (처음 저장 시 이름이 맞지 않으면 오류가 날 수 있어요)
+      </div>
+      <div style="font-size:0.82rem; color: var(--muted); line-height: 2.2;">
+        📌 <b>Name</b> (기본 제목 속성) — 기사 제목<br>
+        🔗 <b>URL</b> (URL 타입) — 원본 기사 링크<br>
+        📝 <b>메모</b> (텍스트 타입) — 나의 메모<br>
+        🏷️ <b>분야</b> (다중 선택 타입) — 정치/사회/경제 등<br>
+        👤 <b>입장</b> (선택 타입) — 동의/비판적/중립<br>
+        📅 <b>날짜</b> (날짜 타입) — 저장 날짜
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+  // ─── 설정 관리 ───────────────────────────────────────
+  const CFG_KEY = 'issujeong-cfg';
+  const LOCAL_KEY = 'issujeong-memos';
+
+  function loadConfig() {
+    try { return JSON.parse(localStorage.getItem(CFG_KEY)) || {}; }
+    catch { return {}; }
+  }
+
+  function saveSettings() {
+    const apiKey = document.getElementById('cfg-api-key').value.trim();
+    const dbId = document.getElementById('cfg-db-id').value.trim().replace(/-/g, '');
+    if (!apiKey || !dbId) {
+      showStatus('settings-status', 'error', 'API 키와 데이터베이스 ID를 모두 입력해주세요.');
+      return;
+    }
+    localStorage.setItem(CFG_KEY, JSON.stringify({ apiKey, dbId }));
+    showStatus('settings-status', 'success', '✅ 설정이 저장되었습니다.');
+  }
+
+  async function testConnection() {
+    const cfg = loadConfig();
+    if (!cfg.apiKey || !cfg.dbId) {
+      showStatus('settings-status', 'error', '먼저 API 키와 데이터베이스 ID를 저장해주세요.');
+      return;
+    }
+    showStatus('settings-status', 'loading', '⏳ 연결 테스트 중...');
+    try {
+      const result = await notionViaClaudeAPI(`databases/${cfg.dbId}`, 'GET', null, cfg);
+      if (result && (result.id || result.object === 'database')) {
+        showStatus('settings-status', 'success', '✅ Notion 연결 성공! 데이터베이스: ' + (result.title?.[0]?.plain_text || '연결됨'));
+      } else {
+        showStatus('settings-status', 'error', '❌ 연결 실패: ' + (result?.message || JSON.stringify(result)));
+      }
+    } catch(e) {
+      showStatus('settings-status', 'error', '❌ 오류: ' + e.message);
+    }
+  }
+
+  function initSettings() {
+    const cfg = loadConfig();
+    if (cfg.apiKey) document.getElementById('cfg-api-key').value = cfg.apiKey;
+    if (cfg.dbId) document.getElementById('cfg-db-id').value = cfg.dbId;
+  }
+
+  // ─── Notion API 직접 호출 (corsproxy.io 경유) ────────
+  async function notionViaClaudeAPI(path, method, body, cfg) {
+    cfg = cfg || loadConfig();
+
+    const notionUrl = `https://api.notion.com/v1/${path}`;
+    const proxyUrl = `https://corsproxy.io/?url=${encodeURIComponent(notionUrl)}`;
+
+    const options = {
+      method: method,
+      headers: {
+        'Authorization': `Bearer ${cfg.apiKey}`,
+        'Notion-Version': '2022-06-28',
+        'Content-Type': 'application/json',
+      }
+    };
+    if (body) options.body = JSON.stringify(body);
+
+    const res = await fetch(proxyUrl, options);
+    if (!res.ok) {
+      const err = await res.text();
+      throw new Error(`Notion API 오류 (${res.status}): ${err}`);
+    }
+    return await res.json();
+  }
+
+  // ─── 태그/입장 선택 ──────────────────────────────────
+  let selectedTags = [];
+  let selectedStance = '';
+
+  function toggleTag(el) {
+    el.classList.toggle('selected');
+    const tag = el.dataset.tag;
+    if (selectedTags.includes(tag)) {
+      selectedTags = selectedTags.filter(t => t !== tag);
+    } else {
+      selectedTags.push(tag);
+    }
+  }
+
+  function selectStance(el) {
+    document.querySelectorAll('[data-stance]').forEach(e => e.classList.remove('selected'));
+    el.classList.add('selected');
+    selectedStance = el.dataset.stance;
+  }
+
+  function clearForm() {
+    document.getElementById('url').value = '';
+    document.getElementById('title').value = '';
+    document.getElementById('memo').value = '';
+    document.querySelectorAll('[data-tag]').forEach(e => e.classList.remove('selected'));
+    document.querySelectorAll('[data-stance]').forEach(e => e.classList.remove('selected'));
+    selectedTags = [];
+    selectedStance = '';
+    document.getElementById('status').className = 'status';
+  }
+
+  // ─── 메모 저장 ───────────────────────────────────────
+  async function saveMemo() {
+    const cfg = loadConfig();
+    if (!cfg.apiKey || !cfg.dbId) {
+      showStatus('status', 'error', '⚙️ 먼저 설정 탭에서 Notion API 키와 데이터베이스 ID를 입력해주세요.');
+      return;
+    }
+
+    const url = document.getElementById('url').value.trim();
+    const title = document.getElementById('title').value.trim();
+    const memo = document.getElementById('memo').value.trim();
+
+    if (!url) { showStatus('status', 'error', '기사 링크를 입력해주세요.'); return; }
+    if (!memo) { showStatus('status', 'error', '메모를 입력해주세요.'); return; }
+
+    const btn = document.getElementById('save-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>저장 중...';
+    showStatus('status', 'loading', '⏳ Notion에 저장하는 중...');
+
+    const today = new Date().toISOString().split('T')[0];
+    const pageTitle = title || url.substring(0, 80);
+
+    const props = {
+      'Name': { title: [{ text: { content: pageTitle } }] },
+      'URL': { url: url },
+      '메모': { rich_text: [{ text: { content: memo } }] },
+      '분야': { multi_select: selectedTags.map(t => ({ name: t })) },
+      '날짜': { date: { start: today } }
+    };
+    if (selectedStance) props['입장'] = { select: { name: selectedStance } };
+
+    const pageBody = {
+      parent: { database_id: cfg.dbId },
+      properties: props
+    };
+
+    try {
+      const result = await notionViaClaudeAPI('pages', 'POST', pageBody, cfg);
+      if (result && result.id) {
+        showStatus('status', 'success', '✅ Notion에 성공적으로 저장되었습니다!');
+        saveToLocal({ url, title: pageTitle, memo, tags: [...selectedTags], stance: selectedStance, date: today });
+        clearForm();
+      } else {
+        showStatus('status', 'error', '❌ 저장 실패: ' + (result?.message || JSON.stringify(result)));
+      }
+    } catch(e) {
+      showStatus('status', 'error', '❌ 오류: ' + e.message);
+    }
+
+    btn.disabled = false;
+    btn.innerHTML = 'Notion에 저장';
+  }
+
+  // ─── 로컬 캐시 ───────────────────────────────────────
+  function saveToLocal(item) {
+    const items = getLocalItems();
+    items.unshift(item);
+    localStorage.setItem(LOCAL_KEY, JSON.stringify(items.slice(0, 300)));
+    renderMemos();
+  }
+
+  function getLocalItems() {
+    try { return JSON.parse(localStorage.getItem(LOCAL_KEY)) || []; }
+    catch { return []; }
+  }
+
+  // ─── 아카이브 렌더링 ─────────────────────────────────
+  let activeFilter = '전체';
+
+  function filterMemos(el) {
+    document.querySelectorAll('.filter-chip').forEach(e => e.classList.remove('active'));
+    el.classList.add('active');
+    activeFilter = el.dataset.filter;
+    renderMemos();
+  }
+
+  function renderMemos() {
+    const items = getLocalItems();
+    const search = (document.getElementById('search-input')?.value || '').toLowerCase();
+    const list = document.getElementById('memo-list');
+
+    let filtered = items.filter(item => {
+      const matchFilter = activeFilter === '전체' || (item.tags || []).includes(activeFilter);
+      const matchSearch = !search ||
+        (item.title || '').toLowerCase().includes(search) ||
+        (item.memo || '').toLowerCase().includes(search) ||
+        (item.date || '').includes(search) ||
+        (item.tags || []).some(t => t.toLowerCase().includes(search));
+      return matchFilter && matchSearch;
+    });
+
+    if (filtered.length === 0) {
+      list.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">📰</div>
+          <p>${items.length === 0
+            ? '아직 저장된 메모가 없어요.<br>첫 번째 기사를 읽고 메모를 남겨보세요!'
+            : '해당 조건의 메모가 없어요.'}</p>
+        </div>`;
+      return;
+    }
+
+    list.innerHTML = filtered.map(item => {
+      const stanceClass = item.stance === '동의' ? 'stance-agree' : item.stance === '비판적' ? 'stance-critical' : 'stance-neutral';
+      const stanceEmoji = item.stance === '동의' ? '👍' : item.stance === '비판적' ? '🔍' : '⚖️';
+      return `
+        <div class="memo-card">
+          <div class="memo-card-header">
+            <div class="memo-tags">
+              ${(item.tags || []).map(t => `<span class="memo-tag">${esc(t)}</span>`).join('')}
+            </div>
+            <div class="memo-date">${esc(item.date || '')}</div>
+          </div>
+          <div class="memo-title">${esc(item.title || item.url)}</div>
+          <div class="memo-body">${esc(item.memo)}</div>
+          <div>
+            <a class="memo-link" href="${esc(item.url)}" target="_blank" rel="noopener">🔗 원본 기사 보기</a>
+            ${item.stance ? `<span class="memo-stance ${stanceClass}">${stanceEmoji} ${esc(item.stance)}</span>` : ''}
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  function esc(s) {
+    return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // ─── UI 유틸 ─────────────────────────────────────────
+  function showStatus(id, type, msg) {
+    const el = document.getElementById(id);
+    el.className = 'status ' + type;
+    el.textContent = msg;
+  }
+
+  function switchTab(tab) {
+    document.querySelectorAll('.tab').forEach((el, i) => {
+      el.classList.toggle('active', ['write','archive','settings'][i] === tab);
+    });
+    document.querySelectorAll('.panel').forEach(el => el.classList.remove('active'));
+    document.getElementById('panel-' + tab).classList.add('active');
+    if (tab === 'archive') renderMemos();
+  }
+
+  // ─── 초기화 ──────────────────────────────────────────
+  initSettings();
+  renderMemos();
+</script>
+
+</body>
+</html>
